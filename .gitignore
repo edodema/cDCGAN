@@ -563,3 +563,4 @@ TSWLatexianTemp*
 # Misc
 .DS_Store
 .idea
+/data
