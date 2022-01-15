@@ -1,20 +1,35 @@
 import numpy as np
-import torch
 import torchvision
-from typing import List, Optional, Union
+from typing import Union, Tuple
 from pathlib import Path
 
 
-def get_stats(data: np.ndarray):
+def get_stats(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Get mean and standard deviation from a numpy dataset.
+    :param data: Input data.
+    :return: Mean and std.
+    """
     return np.mean(data), np.std(data)
 
 
-def get_dataset(name: str, root: Union[str, Path], download: bool):
+def get_dataset(
+    name: str, root: Union[str, Path], download: bool
+) -> torchvision.datasets:
+    """
+    Wrapper to get the correct torchvision dataset function.
+    :param name: Name of the dataset we want to work with.
+    :param root: Parent directory in which we should look for the dataset.
+    :param download: If true, download data from the internet.
+    :return: The torchvision function.
+    """
     dataset_fn = None
+    # By default z-score normalization does not change anything.
     mean = [0, 0, 0]
     std = [1, 1, 1]
 
     if name == "cifar10":
+        # Precomputed values.
         mean = [0.49139968, 0.48215827, 0.44653124]
         std = [0.24703233, 0.24348505, 0.26158768]
         dataset_fn = torchvision.datasets.CIFAR10
@@ -31,7 +46,7 @@ def get_dataset(name: str, root: Union[str, Path], download: bool):
 
     return dataset_fn(
         root=root,
-        train=True,
+        train=True,  # We always consider the train set only.
         download=download,
         transform=torchvision.transforms.Compose(
             [
@@ -43,5 +58,4 @@ def get_dataset(name: str, root: Union[str, Path], download: bool):
 
 
 if __name__ == "__main__":
-    root = Path("../../data")
-    print(root.exists())
+    pass
