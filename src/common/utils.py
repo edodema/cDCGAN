@@ -25,11 +25,10 @@ def get_dataset(
     """
     dataset_fn = None
     # By default z-score normalization does not change anything.
-    mean = [0, 0, 0]
-    std = [1, 1, 1]
+    mean = [0]
+    std = [1]
 
     if name == "cifar10":
-        # Precomputed values.
         mean = [0.49139968, 0.48215827, 0.44653124]
         std = [0.24703233, 0.24348505, 0.26158768]
         dataset_fn = torchvision.datasets.CIFAR10
@@ -40,6 +39,8 @@ def get_dataset(
     elif name == "imagenet":
         dataset_fn = torchvision.datasets.ImageNet
     elif name == "mnist":
+        mean = [0.1307]
+        std = [0.3081]
         dataset_fn = torchvision.datasets.MNIST
     elif name == "omniglot":
         dataset_fn = torchvision.datasets.Omniglot
