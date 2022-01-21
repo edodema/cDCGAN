@@ -390,7 +390,6 @@ class PatchMerging(nn.Module):
         super().__init__()
         self.input_resolution = input_resolution
         self.dim = dim
-        # TODO: This I should change, from reduction: 4->2 to expansion: 2->4
         self.reduction = nn.Linear(4 * dim, 2 * dim, bias=False)
         self.norm = norm_layer(4 * dim)
 
@@ -427,6 +426,55 @@ class PatchMerging(nn.Module):
         return flops
 
 
+class PatchExpanding(nn.Module):
+    r"""Patch Expanding Layer.
+
+    Args:
+        input_resolution (tuple[int]): Resolution of input feature.
+        dim (int): Number of input channels.
+        norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
+    """
+
+    def __init__(self, input_resolution, dim, norm_layer=nn.LayerNorm):
+        super().__init__()
+        self.input_resolution = input_resolution
+        self.dim = dim
+        self.expansion = nn.Linear(4 * dim, 4 * dim, bias=False)
+        self.norm = norm_layer(4 * dim)
+
+    def forward(self, x):
+        """
+        x: B, H*W, C
+        """
+        H, W = self.input_resolution
+        B, L, C = x.shape
+        assert L == H * W, "input feature has wrong size"
+        assert H % 2 == 0 and W % 2 == 0, f"x size ({H}*{W}) are not even."
+
+        x = x.view(B, H, W, C)
+
+        x0 = x[:, 0::2, 0::2, :]  # B H/2 W/2 C
+        x1 = x[:, 1::2, 0::2, :]  # B H/2 W/2 C
+        x2 = x[:, 0::2, 1::2, :]  # B H/2 W/2 C
+        x3 = x[:, 1::2, 1::2, :]  # B H/2 W/2 C
+        x = torch.cat([x0, x1, x2, x3], -1)  # B H/2 W/2 4*C
+        x = x.view(B, -1, 4 * C)  # B H/2*W/2 4*C
+
+        x = self.norm(x)
+        x = self.expansion(x)
+
+        return x
+
+    def extra_repr(self) -> str:
+        return f"input_resolution={self.input_resolution}, dim={self.dim}"
+
+    def flops(self):
+        H, W = self.input_resolution
+        flops = H * W * self.dim
+        flops += (H // 2) * (W // 2) * 4 * self.dim * 2 * self.dim
+        return flops
+
+
 class BasicLayer(nn.Module):
     """A basic Swin Transformer layer for one stage.
 
@@ -443,7 +491,7 @@ class BasicLayer(nn.Module):
         attn_drop (float, optional): Attention dropout rate. Default: 0.0
         drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
         norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
-        downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
+        resample (nn.Module | None, optional): Resample layer at the end of the layer. Default: None
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
     """
 
@@ -461,7 +509,7 @@ class BasicLayer(nn.Module):
         attn_drop=0.0,
         drop_path=0.0,
         norm_layer=nn.LayerNorm,
-        downsample=None,
+        resample=None,
         use_checkpoint=False,
     ):
 
@@ -495,12 +543,10 @@ class BasicLayer(nn.Module):
         )
 
         # patch merging layer
-        if downsample is not None:
-            self.downsample = downsample(
-                input_resolution, dim=dim, norm_layer=norm_layer
-            )
+        if resample is not None:
+            self.resample = resample(input_resolution, dim=dim, norm_layer=norm_layer)
         else:
-            self.downsample = None
+            self.resample = None
 
     def forward(self, x):
         for blk in self.blocks:
@@ -508,8 +554,8 @@ class BasicLayer(nn.Module):
                 x = checkpoint.checkpoint(blk, x)
             else:
                 x = blk(x)
-        if self.downsample is not None:
-            x = self.downsample(x)
+        if self.resample is not None:
+            x = self.resample(x)
         return x
 
     def extra_repr(self) -> str:
@@ -519,8 +565,8 @@ class BasicLayer(nn.Module):
         flops = 0
         for blk in self.blocks:
             flops += blk.flops()
-        if self.downsample is not None:
-            flops += self.downsample.flops()
+        if self.resample is not None:
+            flops += self.resample.flops()
         return flops
 
 
@@ -614,6 +660,7 @@ class SwinTransformer(nn.Module):
 
     def __init__(
         self,
+        mode: str,
         img_size=224,
         patch_size=4,
         in_chans=3,
@@ -673,6 +720,19 @@ class SwinTransformer(nn.Module):
         # build layers
         self.layers = nn.ModuleList()
         for i_layer in range(self.num_layers):
+
+            # Choose resampling layer.
+            if i_layer >= self.num_layers - 1:
+                resampling_layer = None
+            elif mode == "d":
+                resampling_layer = PatchMerging
+            elif mode == "g":
+                resampling_layer = PatchExpanding
+            else:
+                raise Exception(
+                    "Wrong mode, choose between (d)iscriminator and (g)enerator."
+                )
+
             layer = BasicLayer(
                 dim=int(embed_dim * 2 ** i_layer),
                 input_resolution=(
@@ -689,7 +749,8 @@ class SwinTransformer(nn.Module):
                 attn_drop=attn_drop_rate,
                 drop_path=dpr[sum(depths[:i_layer]) : sum(depths[: i_layer + 1])],
                 norm_layer=norm_layer,
-                downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
+                resample=resampling_layer,
+                # resample=PatchMerging if (i_layer < self.num_layers - 1) else None,
                 use_checkpoint=use_checkpoint,
             )
             self.layers.append(layer)

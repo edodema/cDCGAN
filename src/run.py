@@ -1,12 +1,18 @@
+from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from src.common.utils import get_dataset
 from src.model.swin import SwinTransformer
+from src.model.gan import Discriminator, Generator
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
-    ds = get_dataset(root="../data", name="mnist", download=False)
+    ROOT = Path(".")
+    ds = get_dataset(root=ROOT / "data", name="mnist", download=False)
     data_loader = DataLoader(dataset=ds, batch_size=16, shuffle=True, drop_last=False)
+
     # model = SwinTransformer(
+    #     mode="d",
     #     img_size=28,
     #     patch_size=2,
     #     in_chans=1,
@@ -26,17 +32,25 @@ if __name__ == "__main__":
     #     patch_norm=True,
     #     use_checkpoint=False,
     # )
-    #
-    # print(model)
+
+    d = Discriminator(input_size=28, condition_size=10, output_size=1)
+    g = Generator(input_size=28, condition_size=10, output_size=28)
 
     for xb in data_loader:
         x = xb[0]
         y = xb[1]
+        z = torch.rand(x.shape)
 
-        # out = model(x)
+        out = g(z)
+
+        plt.imshow(x[0].permute(1, 2, 0))
+        plt.show()
+
+        plt.imshow(z[0].permute(1, 2, 0))
+        plt.show()
 
         print(f"x: {x.shape}")
-        # print(f"out: {out}")
+        print(f"out: {out.shape}")
         # print(torch.mean(x))
         # print(torch.std(x))
         break

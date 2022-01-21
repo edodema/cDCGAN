@@ -4,3 +4,4 @@ torch
 torchvision
 dvc[gdrive]
 timm
+matplotlib
