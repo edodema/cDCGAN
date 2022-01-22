@@ -1,4 +1,7 @@
 import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import torchvision
 from typing import Union, Tuple
 from pathlib import Path
@@ -56,6 +59,28 @@ def get_dataset(
             ]
         ),
     )
+
+
+class OneHot(nn.Module):
+    def __init__(self, num_classes: int) -> None:
+        """One-hot encoder as a layer.
+
+        Args:
+            num_classes (int): Number of classes.
+        """
+        super().__init__()
+        self.num_classes = num_classes
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass.
+
+        Args:
+            x (torch.Tensor): A tensor of class labels.
+
+        Returns:
+            torch.Tensor: The input tensor encoded as a batch of one-hot vectors.
+        """
+        return F.one_hot(x, num_classes=self.num_classes)
 
 
 if __name__ == "__main__":

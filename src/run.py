@@ -2,9 +2,6 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from src.common.utils import get_dataset
-from src.model.swin import SwinTransformer
-from src.model.gan import Discriminator, Generator
-import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     ROOT = Path(".")
@@ -33,24 +30,25 @@ if __name__ == "__main__":
     #     use_checkpoint=False,
     # )
 
-    d = Discriminator(input_size=28, condition_size=10, output_size=1)
-    g = Generator(input_size=28, condition_size=10, output_size=28)
+    # d = Discriminator(input_size=28, condition_size=10, output_size=1)
+    # g = Generator(input_size=28, condition_size=10, output_size=28)
 
     for xb in data_loader:
         x = xb[0]
         y = xb[1]
-        z = torch.rand(x.shape)
+        # z = torch.rand(x.shape)
 
-        out = g(z)
+        # out = g(z)
 
-        plt.imshow(x[0].permute(1, 2, 0))
-        plt.show()
+        # plt.imshow(x[0].permute(1, 2, 0))
+        # plt.show()
 
-        plt.imshow(z[0].permute(1, 2, 0))
-        plt.show()
+        # plt.imshow(z[0].permute(1, 2, 0))
+        # plt.show()
 
         print(f"x: {x.shape}")
-        print(f"out: {out.shape}")
+        print(f"y: {y}")
+        # print(f"out: {out.shape}")
         # print(torch.mean(x))
         # print(torch.std(x))
         break
