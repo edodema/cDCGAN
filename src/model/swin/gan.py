@@ -2,7 +2,6 @@ from black import out
 import torch
 from torch import nn
 from src.model.swin import SwinTransformer
-from src.common.utils import get_dataset
 from torch.utils.data import DataLoader
 from pathlib import Path
 
@@ -74,26 +73,3 @@ class Generator(nn.Module):
     def forward(self, z):
         out = self.swin(z)
         return out.view(z.shape)
-
-
-if __name__ == "__main__":
-    ROOT = Path(".")
-    ds = get_dataset(root=ROOT / "data", name="mnist", download=False)
-    data_loader = DataLoader(dataset=ds, batch_size=16, shuffle=True, drop_last=False)
-
-    # d =
-
-    # g =
-
-    for xb in data_loader:
-        x = xb[0]
-        y = xb[1]
-        # print(f"x: {x.shape}")
-        # print(f"y: {y.shape}")
-
-        # out = d(x, y)
-        # print(f"d: {out.shape}")
-
-        # out = g(z=torch.rand(x.shape[0], 100), c=y)
-        # print(f"g: {out.shape}")
-        break

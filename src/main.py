@@ -1,11 +1,5 @@
 from argparse import ArgumentParser
 
-import torch
-
-from src.common.utils import get_dataset, get_stats
-from pathlib import Path
-from torch.utils.data import DataLoader
-
 
 def parse():
     # Add description
@@ -47,19 +41,3 @@ def parse():
 
     args = parser.parse_args()
     return args
-
-
-if __name__ == "__main__":
-    args = parse()
-
-    ds = get_dataset(root=args.data, name=args.dataset, download=args.download)
-    data_loader = DataLoader(
-        dataset=ds, batch_size=50000, shuffle=True, drop_last=False
-    )
-
-    for xb in data_loader:
-        x = xb[0]
-        y = xb[1]
-        print(torch.mean(x))
-        print(torch.std(x))
-        break

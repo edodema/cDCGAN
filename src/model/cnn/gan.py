@@ -4,12 +4,10 @@ import torch.nn as nn
 import torchvision
 from src.model.cnn.cnn import Conv, ConvTranspose
 from src.data.datamodule import TorchDataModule
-from torch.utils.data import DataLoader
 from pathlib import Path
 from src.data.datamodule import TorchDataModule
 from typing import *
 import pytorch_lightning as pl
-import matplotlib.pyplot as plt
 
 
 class Discriminator(nn.Module):
@@ -201,27 +199,30 @@ class GAN(pl.LightningModule):
 
         # TODO: add metric
 
-    def forward(self, z: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
-        """Generate an image using the generator.
+    # def forward(self, z: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
+    #     """Generate an image using the generator.
 
-        Args:
-            z (torch.Tensor): Batch of random noise.
-            c (torch.Tensor): Batch of conditioning vectors.
+    #     Args:
+    #         z (torch.Tensor): Batch of random noise.
+    #         c (torch.Tensor): Batch of conditioning vectors.
 
-        Returns:
-            torch.Tensor: Generated image.
-        """
-        out = self.g(z, c)
-        return out
+    #     Returns:
+    #         torch.Tensor: Generated image.
+    #     """
+    #     out = self.g(z, c)
+    #     return out
 
-    def g_step(self, batch_size: int) -> float:
+    def g_step(self, batch_size: int) -> torch.Tensor:
         """Training step for the generator.
 
         Args:
             batch_size (int): Batch size.
 
+        Raises:
+            Exception: Generator loss undefined.
+
         Returns:
-            float: Computed loss.
+            torch.Tensor: Computed loss.
         """
         # Sample random noise, preferably from a gaussian distribution.
         z = torch.randn(batch_size, self.g_z_len)
@@ -231,7 +232,7 @@ class GAN(pl.LightningModule):
         )
 
         # Generate images.
-        x = self(z, c)
+        x = self.g(z, c)
 
         # Classify images using the discriminator.
         logits = self.d(x, c)
@@ -246,18 +247,68 @@ class GAN(pl.LightningModule):
 
         return loss
 
-    def d_step(self, x, y, c):
+    def d_step(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """Training step for the discriminator.
+
+        Args:
+            x (torch.Tensor): Batch of real images.
+            y (torch.Tensor): Tensor of ground truth labels.
+
+        Raises:
+            Exception: Discriminator loss undefined.
+            Exception: Generator loss undefined.
+
+        Returns:
+            torch.Tensor: Computed loss.
+        """
         # Real images.
-        out = self.d(x, c)
+        out = self.d(x, F.one_hot(y, self.num_classes))
 
         # Real loss on data distribution.
         if isinstance(self.d_loss, nn.BCEWithLogitsLoss):
-            loss_d = self.d_loss(out.squeeze(1), y.to(torch.float))
+            loss_x = self.d_loss(out.squeeze(1), y.to(torch.float))
         else:
             raise Exception("Discriminator loss undefined, please define it.")
 
         # Fake images.
-        # TODO: see https://github.com/jamesloyys/PyTorch-Lightning-GAN/blob/main/CGAN/cgan.py#L117
+        batch_size = x.shape[0]
+        z = torch.randn(batch_size, self.g_z_len)
+        c = F.one_hot(
+            torch.randint(low=0, high=self.num_classes, size=(batch_size,)),
+            num_classes=self.num_classes,
+        )
+        logits = self.d(self.g(z, c), c)
+
+        target = torch.zeros(batch_size)
+
+        # Loss on fake images.
+        if isinstance(self.g_loss, nn.BCEWithLogitsLoss):
+            loss_z = self.d_loss(logits.squeeze(1), target)
+        else:
+            raise Exception("Discriminator loss undefined, please define it.")
+
+        loss = loss_x + loss_z
+        return loss
+
+    def training_steps(
+        self, batch: torch.Tensor, batch_idx: int, optimizer_idx: int
+    ) -> torch.Tensor:
+        x, y = batch
+
+        # Train generator.
+        if optimizer_idx == 0:
+            loss = self.g_step(x.shape[0])
+
+        # Train discriminator.
+        if optimizer_idx == 1:
+            loss = self.d_step(x, y)
+
+        return loss
+
+    def configure_optimizers(self):
+        d_opt = torch.optim.Adam(self.d.parameters(), lr=self.lr_d)
+        g_opt = torch.optim.Adam(self.g.parameters(), lr=self.lr_g)
+        return [d_opt, g_opt], []
 
 
 if __name__ == "__main__":
@@ -311,57 +362,12 @@ if __name__ == "__main__":
     for xb in dl:
         x = xb[0]
         y = xb[1]
-        print(f"x: {x.shape}")
-        print(f"y: {y.shape}")
+        # print(f"x: {x.shape}")
+        # print(f"y: {y.shape}")
 
-        # gan.g_step(x.shape[0])
-        c = F.one_hot(y, num_classes=10)
-        gan.d_step(x, y, c)
+        # out_g = gan.g_step(x.shape[0])
+        out_d = gan.d_step(x, y)
+
+        print(out_d)
 
         break
-
-    # for xb in data_loader:
-    #     x = xb[0]
-    #     y = xb[1]
-    #     # print(f"x: {x.shape}")
-    #     # print(f"y: {y.shape}")
-
-    #     c = F.one_hot(y, num_classes=10)
-    #     out = d(x, c)
-    #     print(f"d: {out.shape}")
-
-    #     out = g(z=torch.rand(x.shape[0], 100), c=c)
-    #     print(f"g: {out.shape}")
-    #     break
-
-    # d = Discriminator(
-    #     in_channels=1,
-    #     conditional_size=10,
-    #     features=[32, 16, 16, 12, 11, 10],
-    #     kernels=[3, 5, 1, 3, 5, 3],
-    #     strides=[1, 2, 1, 1, 2, 1],
-    #     paddings=[0] * 6,
-    #     norm_layers=[nn.BatchNorm2d] * 6,
-    #     activations=[nn.ReLU] * 6,
-    # )
-
-    # g = Generator(
-    #     in_size=100,
-    #     h_size=4,
-    #     conditional_size=10,
-    #     in_channels=1,
-    #     features=[5, 3, 5, 3, 1],
-    #     kernels=[3, 5, 5, 3, 2],
-    #     strides=[2, 2, 1, 1, 1],
-    #     paddings=[0, 0, 0, 0, 0],
-    #     norm_layers=[nn.BatchNorm2d] * 5,
-    #     activations=[nn.ReLU] * 5,
-    # )
-
-    #     c = F.one_hot(y, num_classes=10)
-    #     out = d(x, c)
-    #     print(f"d: {out.shape}")
-
-    #     out = g(z=torch.rand(x.shape[0], 100), c=c)
-    #     print(f"g: {out.shape}")
-    #     break
