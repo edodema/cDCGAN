@@ -22,7 +22,7 @@ class TorchDataModule(pl.LightningDataModule):
 
         self.root = cfg["root"]
         self.download = cfg["download"]
-        self.transforms = transforms + cfg["transforms"]
+        self.transforms = torchvision.transforms.Compose(transforms + cfg["transforms"])
 
         self.num_workers = cfg["num_workers"]
         self.batch_size = cfg["batch_size"]
@@ -128,36 +128,3 @@ class TorchDataModule(pl.LightningDataModule):
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Normalize(mean=mean, std=std),
         ]
-
-
-if __name__ == "__main__":
-    ROOT = Path(".")
-    cfg = {
-        "name": "cifar100",
-        "root": ROOT / "data",
-        "download": False,
-        "transforms": [
-            transforms.RandomVerticalFlip(p=0.2),
-            transforms.RandomHorizontalFlip(p=0.5),
-        ],
-        "num_workers": 12,
-        "batch_size": 32,
-        "shuffle": False,
-    }
-
-    ds = TorchDataModule(cfg)
-    ds.prepare_data()
-    ds.setup()
-
-    # dl = ds.train_dataloader()
-
-    # for xb in dl:
-    #     x = xb[0]
-    #     y = xb[1]
-    #     print(f"x: {x.shape}")
-    #     print(f"y: {y.shape}")
-
-    #     plt.imshow(x[0].permute(1, 2, 0))
-    #     plt.show()
-
-    #     break
