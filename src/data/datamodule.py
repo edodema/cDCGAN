@@ -21,7 +21,6 @@ class TorchDataModule(pl.LightningDataModule):
         self.fn, transforms = TorchDataModule.get_torch_dataset(name=cfg["name"])
 
         self.root = cfg["root"]
-        self.download = cfg["download"]
         self.transforms = torchvision.transforms.Compose(transforms + cfg["transforms"])
 
         self.num_workers = cfg["num_workers"]
