@@ -1,13 +1,17 @@
 from pathlib import Path
+from git import tag
 import torch
 import torch.nn as nn
 import torchvision
 from src.data.datamodule import TorchDataModule
-from src.model.cnn import GAN
+from src.model.cnn.gan import LitGAN
+import pytorch_lightning as pl
+from pytorch_lightning.loggers import WandbLogger
 
 if __name__ == "__main__":
     ROOT = Path(".")
 
+    # Configuration.
     cfg_data = {
         "name": "mnist",
         "root": ROOT / "data",
@@ -28,6 +32,7 @@ if __name__ == "__main__":
         "norm_layers": [nn.BatchNorm2d] * 6,
         "activations": [nn.ReLU] * 6,
         "loss": "BCE",
+        "lr": 1e-3,
     }
 
     cfg_g = {
@@ -42,26 +47,42 @@ if __name__ == "__main__":
         "norm_layers": [nn.BatchNorm2d] * 5,
         "activations": [nn.ReLU] * 5,
         "loss": "BCE",
+        "lr": 1e-3,
     }
 
-    cfg = {"d": cfg_d, "g": cfg_g, "num_classes": 10}
+    cfg_gan = {"d": cfg_d, "g": cfg_g, "num_classes": 10}
 
-    ds = TorchDataModule(cfg_data)
-    ds.prepare_data()
-    ds.setup()
-    dl = ds.train_dataloader()
+    cfg_train = {
+        "deterministic": True,
+        "random_seed": 42,
+        "val_check_interval": 1.0,
+        "progress_bar_refresh_rate": 20,
+        "fast_dev_run": False,  # True for debug purposes.
+        "gpus": -1 if torch.cuda.is_available() else 0,
+        "precision": 32,
+        # "max_steps": 10,
+        "max_epochs": 5,
+        "accumulate_grad_batches": 1,
+        "num_sanity_val_steps": 2,
+        "gradient_clip_val": 10.0,
+    }
 
-    gan = GAN(cfg)
+    if cfg_train["deterministic"]:
+        pl.seed_everything(cfg_train["random_seed"])
 
-    for xb in dl:
-        x = xb[0]
-        y = xb[1]
-        # print(f"x: {x.shape}")
-        # print(f"y: {y.shape}")
+    # Instantiate.
+    wandb_logger = WandbLogger(project="cDCGAN", tags=["try"])
+    datamodule = TorchDataModule(cfg_data)
+    model = LitGAN(cfg_gan)
 
-        # out_g = gan.g_step(x.shape[0])
-        out_d = gan.d_step(x, y)
+    trainer = pl.Trainer(
+        deterministic=cfg_train["deterministic"],
+        gpus=cfg_train["gpus"],
+        max_epochs=cfg_train["max_epochs"],
+        logger=wandb_logger,
+        # callbacks=[checkpoint_callback],
+        # log_every_n_steps=1
+    )
 
-        print(out_d)
-
-        break
+    # Fit.
+    trainer.fit(model=model, datamodule=datamodule)

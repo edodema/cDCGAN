@@ -149,7 +149,7 @@ class Generator(nn.Module):
         return out
 
 
-class GAN(pl.LightningModule):
+class LitGAN(pl.LightningModule):
     def __init__(self, cfg: Dict, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
@@ -184,6 +184,9 @@ class GAN(pl.LightningModule):
         self.g_z_len = cfg["g"]["in_size"]
         self.g_c_len = cfg["g"]["conditional_size"]
 
+        self.lr_d = cfg["d"]["lr"]
+        self.lr_g = cfg["g"]["lr"]
+
         # We may have different losses, this way we can deal with it more easily.
         d_loss = cfg["d"]["loss"]
         if d_loss == "BCE":
@@ -196,6 +199,12 @@ class GAN(pl.LightningModule):
             self.g_loss = nn.BCEWithLogitsLoss()
         else:
             raise Exception("Generator loss undefined, please define it.")
+
+        # Generated images for validation.
+        self.val_c = F.one_hot(
+            torch.arange(self.num_classes), num_classes=self.num_classes
+        )
+        self.val_z = torch.randn(self.num_classes, self.g_z_len)
 
         # TODO: add metric
 
@@ -245,6 +254,9 @@ class GAN(pl.LightningModule):
         else:
             raise Exception("Generator loss undefined, please define it.")
 
+        # Logging.
+        self.log("generator/loss", loss)
+
         return loss
 
     def d_step(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
@@ -261,17 +273,21 @@ class GAN(pl.LightningModule):
         Returns:
             torch.Tensor: Computed loss.
         """
+        batch_size = x.shape[0]
+
         # Real images.
-        out = self.d(x, F.one_hot(y, self.num_classes))
+        out = self.d(x, F.one_hot(y, num_classes=self.num_classes))
+
+        # Since images are real we expect all true.
+        target_real = torch.ones(batch_size)
 
         # Real loss on data distribution.
         if isinstance(self.d_loss, nn.BCEWithLogitsLoss):
-            loss_x = self.d_loss(out.squeeze(1), y.to(torch.float))
+            loss_real = self.d_loss(out.squeeze(1), target_real)
         else:
             raise Exception("Discriminator loss undefined, please define it.")
 
         # Fake images.
-        batch_size = x.shape[0]
         z = torch.randn(batch_size, self.g_z_len)
         c = F.one_hot(
             torch.randint(low=0, high=self.num_classes, size=(batch_size,)),
@@ -279,18 +295,25 @@ class GAN(pl.LightningModule):
         )
         logits = self.d(self.g(z, c), c)
 
-        target = torch.zeros(batch_size)
+        # Since images are fake we would want all false.
+        target_fake = torch.zeros(batch_size)
 
         # Loss on fake images.
         if isinstance(self.g_loss, nn.BCEWithLogitsLoss):
-            loss_z = self.d_loss(logits.squeeze(1), target)
+            loss_fake = self.d_loss(logits.squeeze(1), target_fake)
         else:
             raise Exception("Discriminator loss undefined, please define it.")
 
-        loss = loss_x + loss_z
+        loss = loss_real + loss_fake
+
+        # Logging.
+        self.log("discriminator/loss", loss)
+        self.log("discriminator/loss_real", loss_real)
+        self.log("discriminator/loss_fake", loss_fake)
+
         return loss
 
-    def training_steps(
+    def training_step(
         self, batch: torch.Tensor, batch_idx: int, optimizer_idx: int
     ) -> torch.Tensor:
         x, y = batch
@@ -350,14 +373,14 @@ if __name__ == "__main__":
         "loss": "BCE",
     }
 
-    cfg = {"d": cfg_d, "g": cfg_g, "num_classes": 10}
+    cfg_gan = {"d": cfg_d, "g": cfg_g, "num_classes": 10}
 
     ds = TorchDataModule(cfg_data)
     ds.prepare_data()
     ds.setup()
     dl = ds.train_dataloader()
 
-    gan = GAN(cfg)
+    gan = LitGAN(cfg_gan)
 
     for xb in dl:
         x = xb[0]
@@ -365,9 +388,11 @@ if __name__ == "__main__":
         # print(f"x: {x.shape}")
         # print(f"y: {y.shape}")
 
-        # out_g = gan.g_step(x.shape[0])
+        out_g = gan.g_step(x.shape[0])
+
         out_d = gan.d_step(x, y)
 
-        print(out_d)
+        print(f"g_loss: {out_g}")
+        print(f"d_loss: {out_d}")
 
         break

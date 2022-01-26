@@ -564,3 +564,4 @@ TSWLatexianTemp*
 .DS_Store
 .idea
 /data
+wandb
