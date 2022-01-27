@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torchvision  # TODO: Use some pretrained model for transfer learning.
 from typing import List, Tuple
-from torch.utils.data import DataLoader
-from pathlib import Path
 
 
 class ConvBlock(nn.Module):
@@ -30,17 +28,24 @@ class ConvBlock(nn.Module):
         """
         super().__init__()
 
-        self.cnn = nn.Conv2d(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=padding,
+        self.net = nn.Sequential()
+
+        self.net.add_module(
+            name="conv",
+            module=nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+            ),
         )
 
-        self.norm = norm_layer(num_features=out_channels)
+        if norm_layer:
+            self.net.add_module(name="norm", module=norm_layer)
 
-        self.act = activation()
+        if activation:
+            self.net.add_module(name="activation", module=activation)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
@@ -51,10 +56,7 @@ class ConvBlock(nn.Module):
         Returns:
             torch.Tensor: Output tensor.
         """
-        out = self.cnn(x)
-        out = self.norm(out)
-        out = self.act(out)
-        return out
+        return self.net(x)
 
 
 class ConvTransposeBlock(nn.Module):
@@ -81,17 +83,24 @@ class ConvTransposeBlock(nn.Module):
         """
         super().__init__()
 
-        self.cnn = nn.ConvTranspose2d(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=padding,
+        self.net = nn.Sequential()
+
+        self.net.add_module(
+            name="conv_transpose",
+            module=nn.ConvTranspose2d(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+            ),
         )
 
-        self.norm = norm_layer(num_features=out_channels)
+        if norm_layer:
+            self.net.add_module(name="norm", module=norm_layer)
 
-        self.act = activation()
+        if activation:
+            self.net.add_module(name="activation", module=activation)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
@@ -102,10 +111,7 @@ class ConvTransposeBlock(nn.Module):
         Returns:
             torch.Tensor: Output tensor.
         """
-        out = self.cnn(x)
-        out = self.norm(out)
-        out = self.act(out)
-        return out
+        return self.net(x)
 
 
 class Conv(nn.Module):

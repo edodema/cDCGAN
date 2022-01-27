@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import torchvision
-from src.model.cnn.cnn import Conv, ConvTranspose
+from src.model.mlp.mlp import MLP
 from src.data.datamodule import TorchDataModule
 from pathlib import Path
 from src.data.datamodule import TorchDataModule
@@ -13,42 +13,32 @@ import pytorch_lightning as pl
 class Discriminator(nn.Module):
     def __init__(
         self,
-        in_channels: int,
+        in_size: int,
         conditional_size: int,
         features: List[int],
-        kernels: List[int],
-        strides: List[int],
-        paddings: List[int],
-        norm_layers: List[nn.Module],
-        activations: List[nn.Module],
+        norm_layers: List[int],
+        activations: List[int],
+        dropouts: List[int],
     ) -> None:
         """Discriminator.
 
         Args:
-            in_channels (int): Number of channels in input images.
-            conditional_size (int): Size of the conditional vector, we assume a one-hot encoding therefore this number will match the number of classes.
-            features (List[int]): A list containing the output feature maps of each convolutional layer.
-            kernels (List[int]): A list containing the kernel sizes in each convolutional layer.
-            strides (List[int]): A list of strides in each convolutional layer.
-            paddings (List[int]): A list of paddings in each convolutional layer.
-            norm_layers (nn.Module, optional): List of normalization layers.
-            activations (nn.Module, optional): List of activation functions.
+            in_size (int): Input size.
+            conditional_size (int): Conditional vector size.
+            features (List[int]): List of linear layers' features.
+            norm_layers (List[nn.Module]): List of normalization layers.
+            activations (List[nn.Module]): List of activations functions.
+            dropouts (List[int]): List of dropout probabilities.
         """
-        super().__init__()
+        super(Discriminator, self).__init__()
 
-        # Feature extraction backbone.
-        self.cnn = Conv(
-            in_channels=in_channels,
+        self.fc = MLP(
+            in_size=in_size + conditional_size,
             features=features,
-            kernels=kernels,
-            strides=strides,
-            paddings=paddings,
             norm_layers=norm_layers,
             activations=activations,
+            dropouts=dropouts,
         )
-
-        # Dense layer.
-        self.fc = nn.Linear(in_features=features[-1] + conditional_size, out_features=1)
 
     def forward(self, x: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
         """Forward pass.
@@ -60,93 +50,50 @@ class Discriminator(nn.Module):
         Returns:
             torch.Tensor: Output tensor.
         """
-        out = self.cnn(x)
-
-        assert (
-            c.shape == out.shape[:2]
-        ), "The CNN should output a number of features equal to `conditional_size`."
-        assert out.shape[2:] == torch.Size([1, 1]), "The CNN should reduce H, W to 1."
-
-        out = out.view(out.shape[0], out.shape[1])
-
-        # Combine image and conditioning data.
-        out = torch.cat((out, c), dim=-1)
-
-        # Classification head outputs a probability distribution.
-        logits = self.fc(out)
-        return logits
+        return self.fc(torch.cat((x.view(x.shape[0], -1), c), dim=-1))
 
 
 class Generator(nn.Module):
     def __init__(
         self,
         in_size: int,
-        h_size: int,
         conditional_size: int,
-        in_channels: int,
         features: List[int],
-        kernels: List[int],
-        strides: List[int],
-        paddings: List[int],
         norm_layers: List[nn.Module],
         activations: List[nn.Module],
-    ) -> None:
+        dropouts: List[int],
+    ):
         """Generator.
 
         Args:
-            in_size (int): Side of the input image, we assume it to be a square.
-            h_size (int): Size of the hidden representation of input || conditioning.
-            conditional_size (int): Size of the conditional vector, we assume a one-hot encoding therefore this number will match the number of classes.
-            in_channels (int): Number of channels in input images.
-            features (List[int]): A list containing the output feature maps of each convolutional layer.
-            kernels (List[int]): A list containing the kernel sizes in each convolutional layer.
-            strides (List[int]): A list of strides in each convolutional layer.
-            paddings (List[int]): A list of paddings in each convolutional layer.
-            norm_layers (nn.Module, optional): List of normalization layers.
-            activations (nn.Module, optional): List of activation functions.
+            in_size (int): Input size.
+            conditional_size (int): Conditional vector size.
+            features (List[int]): List of linear layers' features.
+            norm_layers (List[nn.Module]): List of normalization layers.
+            activations (List[nn.Module]): List of activations functions.
+            dropouts (List[int]): List of dropout probabilities.
         """
-        super().__init__()
+        super(Generator, self).__init__()
 
-        self.c = in_channels
-        # Used h and w for modularity, for now they are always the same. We can easily support non-square images using lists.
-        self.h = h_size
-        self.w = h_size
-
-        # Dense layer, could have just reshaped.
-        self.fc = nn.Linear(
-            in_features=in_size + conditional_size,
-            out_features=in_channels * h_size * h_size,
-        )
-
-        # Image generation bone.
-        self.cnn = ConvTranspose(
-            in_channels=in_channels,
+        self.fc = MLP(
+            in_size=in_size + conditional_size,
             features=features,
-            kernels=kernels,
-            strides=strides,
-            paddings=paddings,
             norm_layers=norm_layers,
             activations=activations,
+            dropouts=dropouts,
         )
 
     def forward(self, z: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
         """Forward pass.
 
         Args:
-            z (torch.Tensor): Batch of random noise.
+            z (torch.Tensor): Batch of random vectors.
             c (torch.Tensor): Batch of conditioning vectors.
 
-
         Returns:
-            torch.Tensor: Generated image.
+            torch.Tensor: Output tensor.
         """
-        x = torch.cat((z, c), dim=-1)
-
-        out = self.fc(x)
-        out = out.view(out.shape[0], self.c, self.h, self.w)
-
-        out = self.cnn(out)
-        return out
+        return self.fc(torch.cat((z, c), dim=-1))
 
 
 class LitGAN(pl.LightningModule):
@@ -156,31 +103,27 @@ class LitGAN(pl.LightningModule):
 
         # Discriminator.
         self.d = Discriminator(
-            in_channels=cfg["d"]["in_channels"],
+            in_size=cfg["d"]["in_size"],
             conditional_size=cfg["d"]["conditional_size"],
             features=cfg["d"]["features"],
-            kernels=cfg["d"]["kernels"],
-            strides=cfg["d"]["strides"],
-            paddings=cfg["d"]["paddings"],
             norm_layers=cfg["d"]["norm_layers"],
             activations=cfg["d"]["activations"],
+            dropouts=cfg["d"]["dropouts"],
         )
 
         # Generator.
         self.g = Generator(
             in_size=cfg["g"]["in_size"],
-            h_size=cfg["g"]["h_size"],
-            in_channels=cfg["g"]["in_channels"],
             conditional_size=cfg["g"]["conditional_size"],
             features=cfg["g"]["features"],
-            kernels=cfg["g"]["kernels"],
-            strides=cfg["g"]["strides"],
-            paddings=cfg["g"]["paddings"],
             norm_layers=cfg["g"]["norm_layers"],
             activations=cfg["g"]["activations"],
+            dropouts=cfg["g"]["dropouts"],
         )
 
         self.num_classes = cfg["num_classes"]
+        self.img_shape = cfg["img_shape"]
+
         self.g_z_len = cfg["g"]["in_size"]
         self.g_c_len = cfg["g"]["conditional_size"]
 
@@ -319,7 +262,10 @@ class LitGAN(pl.LightningModule):
         val_z = self.val_z.to(self.device)
         val_c = self.val_c.to(self.device)
 
+        c, h, w = self.img_shape
         imgs = self.g(val_z, val_c)
+        imgs = imgs.reshape(imgs.shape[0], c, h, w)
+
         grid = torchvision.utils.make_grid(imgs)
         self.logger.log_image(key="generated_images", images=[grid])
 
@@ -331,54 +277,47 @@ if __name__ == "__main__":
         "name": "mnist",
         "root": ROOT / "data",
         "download": False,
-        "transforms": [torchvision.transforms.RandomHorizontalFlip(p=0.5)],
+        "transforms": [],
         "num_workers": 12,
         "batch_size": 32,
         "shuffle": False,
     }
 
     cfg_d = {
-        "in_channels": 1,
+        "in_size": 784,
         "conditional_size": 10,
-        "features": [32, 16, 16, 12, 11, 10],
-        "kernels": [3, 5, 1, 3, 5, 3],
-        "strides": [1, 2, 1, 1, 2, 1],
-        "paddings": [0] * 6,
-        "norm_layers": [
-            nn.BatchNorm2d(32),
-            nn.BatchNorm2d(16),
-            nn.BatchNorm2d(16),
-            nn.BatchNorm2d(12),
-            nn.BatchNorm2d(11),
-            nn.BatchNorm2d(10),
-        ],
-        "activations": [nn.ReLU()] * 5 + [None],
+        "features": [512, 256, 1],
+        "norm_layers": [None] * 3,
+        "activations": [nn.LeakyReLU(0.2), nn.LeakyReLU(0.2), nn.Sigmoid()],
+        "dropouts": [0] * 3,
         "loss": "BCE",
         "lr": 1e-5,
     }
 
     cfg_g = {
         "in_size": 100,
-        "h_size": 4,
         "conditional_size": 10,
-        "in_channels": 1,
-        "features": [5, 3, 5, 3, 1],
-        "kernels": [3, 5, 5, 3, 2],
-        "strides": [2, 2, 1, 1, 1],
-        "paddings": [0, 0, 0, 0, 0],
+        "features": [128, 256, 512, 1024, 784],
         "norm_layers": [
-            nn.BatchNorm2d(5),
-            nn.BatchNorm2d(3),
-            nn.BatchNorm2d(5),
-            nn.BatchNorm2d(3),
-            nn.BatchNorm2d(1),
+            None,
+            nn.BatchNorm1d(256),
+            nn.BatchNorm1d(512),
+            nn.BatchNorm1d(1024),
+            None,
         ],
-        "activations": [nn.ReLU()] * 4 + [None],
+        "activations": [
+            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2),
+            None,
+        ],
+        "dropouts": [0] * 5,
         "loss": "BCE",
         "lr": 1e-5,
     }
 
-    cfg_gan = {"d": cfg_d, "g": cfg_g, "num_classes": 10}
+    cfg_gan = {"d": cfg_d, "g": cfg_g, "num_classes": 10, "img_shape": [1, 28, 28]}
 
     ds = TorchDataModule(cfg_data)
     ds.prepare_data()
@@ -387,17 +326,18 @@ if __name__ == "__main__":
 
     gan = LitGAN(cfg_gan)
 
+    gan.on_epoch_end()
+
     for xb in dl:
         x = xb[0]
         y = xb[1]
-        # print(f"x: {x.shape}")
-        # print(f"y: {y.shape}")
 
-        out_g = gan.g_step(x.shape[0])
+        print(x.shape, y.shape)
+        # out_g = gan.g_step(x.shape[0])
 
-        out_d = gan.d_step(x, y)
+        # out_d = gan.d_step(x, y)
 
-        print(f"g_loss: {out_g}")
-        print(f"d_loss: {out_d}")
+        # print(f"g_loss: {out_g}")
+        # print(f"d_loss: {out_d}")
 
         break

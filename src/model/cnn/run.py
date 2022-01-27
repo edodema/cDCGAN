@@ -16,7 +16,7 @@ if __name__ == "__main__":
         "name": "mnist",
         "root": ROOT / "data",
         "download": False,
-        "transforms": [torchvision.transforms.RandomHorizontalFlip(p=0.5)],
+        "transforms": [],
         "num_workers": 12,
         "batch_size": 32,
         "shuffle": False,
@@ -29,8 +29,15 @@ if __name__ == "__main__":
         "kernels": [3, 5, 1, 3, 5, 3],
         "strides": [1, 2, 1, 1, 2, 1],
         "paddings": [0] * 6,
-        "norm_layers": [nn.BatchNorm2d] * 6,
-        "activations": [nn.ReLU] * 6,
+        "norm_layers": [
+            nn.BatchNorm2d(32),
+            nn.BatchNorm2d(16),
+            nn.BatchNorm2d(16),
+            nn.BatchNorm2d(12),
+            nn.BatchNorm2d(11),
+            nn.BatchNorm2d(10),
+        ],
+        "activations": [nn.ReLU()] * 6,
         "loss": "BCE",
         "lr": 1e-3,
     }
@@ -44,8 +51,14 @@ if __name__ == "__main__":
         "kernels": [3, 5, 5, 3, 2],
         "strides": [2, 2, 1, 1, 1],
         "paddings": [0, 0, 0, 0, 0],
-        "norm_layers": [nn.BatchNorm2d] * 5,
-        "activations": [nn.ReLU] * 5,
+        "norm_layers": [
+            nn.BatchNorm2d(5),
+            nn.BatchNorm2d(3),
+            nn.BatchNorm2d(5),
+            nn.BatchNorm2d(3),
+            nn.BatchNorm2d(1),
+        ],
+        "activations": [nn.ReLU()] * 5,
         "loss": "BCE",
         "lr": 1e-3,
     }
@@ -71,7 +84,7 @@ if __name__ == "__main__":
         pl.seed_everything(cfg_train["random_seed"])
 
     # Instantiate.
-    wandb_logger = WandbLogger(project="cDCGAN", tags=["try"])
+    wandb_logger = WandbLogger(project="CNN", tags=["try"])
     datamodule = TorchDataModule(cfg_data)
     model = LitGAN(cfg_gan)
 
