@@ -144,14 +144,14 @@ class LitGAN(pl.LightningModule):
             raise Exception("Generator loss undefined, please define it.")
 
         # Generated images for validation. Torchvision has a maximum of 8 columns by default.
-        cols = 8
+        ncol = 8
         self.val_c = F.one_hot(
-            torch.arange(end=cols * self.num_classes, device=self.device)
+            torch.arange(end=ncol * self.num_classes, device=self.device)
             % self.num_classes,
             num_classes=self.num_classes,
         )
         self.val_z = torch.randn(
-            size=(cols * self.num_classes, self.g_z_len), device=self.device
+            size=(ncol * self.num_classes, self.g_z_len), device=self.device
         )
 
         # TODO: add metric
@@ -266,7 +266,7 @@ class LitGAN(pl.LightningModule):
         imgs = self.g(val_z, val_c)
         imgs = imgs.reshape(imgs.shape[0], c, h, w)
 
-        grid = torchvision.utils.make_grid(imgs)
+        grid = torchvision.utils.make_grid(imgs, nrow=self.num_classes)
         self.logger.log_image(key="generated_images", images=[grid])
 
 
