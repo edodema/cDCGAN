@@ -8,6 +8,8 @@ from torchvision import transforms
 from src.model.mlp.gan import Discriminator, Generator
 import wandb
 
+# ? This will probably be deleted.
+
 if __name__ == "__main__":
     ROOT = Path(".")
 
