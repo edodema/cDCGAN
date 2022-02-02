@@ -566,3 +566,4 @@ TSWLatexianTemp*
 /data
 wandb/
 lightning_logs/
+MLP/

@@ -54,7 +54,7 @@ if __name__ == "__main__":
         "lr": 1e-5,
     }
 
-    cfg_gan = {"d": cfg_d, "g": cfg_g, "num_classes": 10}
+    cfg_gan = {"d": cfg_d, "g": cfg_g, "num_classes": 10, "img_shape": [1, 28, 28]}
 
     cfg_train = {
         "deterministic": True,
