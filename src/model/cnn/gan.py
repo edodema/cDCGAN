@@ -327,77 +327,90 @@ class LitGAN(pl.LightningModule):
 if __name__ == "__main__":
     ROOT = Path(".")
 
-    cfg_data = {
-        "name": "mnist",
-        "root": ROOT / "data",
-        "download": False,
-        "transforms": [torchvision.transforms.RandomHorizontalFlip(p=0.5)],
-        "num_workers": 12,
-        "batch_size": 32,
-        "shuffle": False,
-    }
+    # cfg_data = {
+    #     "name": "cifar10",
+    #     "root": ROOT / "data",
+    #     "download": False,
+    #     "transforms": [torchvision.transforms.RandomHorizontalFlip(p=0.5)],
+    #     "num_workers": 12,
+    #     "batch_size": 32,
+    #     "shuffle": False,
+    # }
 
-    cfg_d = {
-        "in_channels": 1,
-        "conditional_size": 10,
-        "features": [32, 16, 16, 12, 11, 10],
-        "kernels": [3, 5, 1, 3, 5, 3],
-        "strides": [1, 2, 1, 1, 2, 1],
-        "paddings": [0] * 6,
-        "norm_layers": [
-            nn.BatchNorm2d(32),
-            nn.BatchNorm2d(16),
-            nn.BatchNorm2d(16),
-            nn.BatchNorm2d(12),
-            nn.BatchNorm2d(11),
-            nn.BatchNorm2d(10),
-        ],
-        "activations": [nn.ReLU()] * 5 + [None],
-        "loss": "BCE",
-        "lr": 1e-5,
-    }
+    # cfg_d = {
+    #     "in_channels": 1,
+    #     "conditional_size": 10,
+    #     "features": [32, 16, 16, 12, 11, 10],
+    #     "kernels": [3, 5, 1, 3, 5, 3],
+    #     "strides": [1, 2, 1, 1, 2, 1],
+    #     "paddings": [0] * 6,
+    #     "norm_layers": [
+    #         nn.BatchNorm2d(32),
+    #         nn.BatchNorm2d(16),
+    #         nn.BatchNorm2d(16),
+    #         nn.BatchNorm2d(12),
+    #         nn.BatchNorm2d(11),
+    #         nn.BatchNorm2d(10),
+    #     ],
+    #     "activations": [nn.ReLU()] * 5 + [None],
+    #     "loss": "BCE",
+    #     "lr": 1e-5,
+    # }
 
-    cfg_g = {
-        "in_size": 100,
-        "h_size": 4,
-        "conditional_size": 10,
-        "in_channels": 1,
-        "features": [5, 3, 5, 3, 1],
-        "kernels": [3, 5, 5, 3, 2],
-        "strides": [2, 2, 1, 1, 1],
-        "paddings": [0, 0, 0, 0, 0],
-        "norm_layers": [
-            nn.BatchNorm2d(5),
-            nn.BatchNorm2d(3),
-            nn.BatchNorm2d(5),
-            nn.BatchNorm2d(3),
-            nn.BatchNorm2d(1),
-        ],
-        "activations": [nn.ReLU()] * 4 + [None],
-        "loss": "BCE",
-        "lr": 1e-5,
-    }
+    # cfg_g = {
+    #     "in_size": 100,
+    #     "h_size": 4,
+    #     "conditional_size": 10,
+    #     "in_channels": 1,
+    #     "features": [5, 3, 5, 3, 1],
+    #     "kernels": [3, 5, 5, 3, 2],
+    #     "strides": [2, 2, 1, 1, 1],
+    #     "paddings": [0, 0, 0, 0, 0],
+    #     "norm_layers": [
+    #         nn.BatchNorm2d(5),
+    #         nn.BatchNorm2d(3),
+    #         nn.BatchNorm2d(5),
+    #         nn.BatchNorm2d(3),
+    #         nn.BatchNorm2d(1),
+    #     ],
+    #     "activations": [nn.ReLU()] * 4 + [None],
+    #     "loss": "BCE",
+    #     "lr": 1e-5,
+    # }
 
-    cfg_gan = {"d": cfg_d, "g": cfg_g, "num_classes": 10}
+    # cfg_gan = {"d": cfg_d, "g": cfg_g, "num_classes": 10}
 
-    ds = TorchDataModule(cfg_data)
-    ds.prepare_data()
-    ds.setup()
-    dl = ds.train_dataloader()
+    # ds = TorchDataModule(cfg_data)
+    # ds.prepare_data()
+    # ds.setup()
+    # dl = ds.train_dataloader()
 
-    gan = LitGAN(cfg_gan)
+    # gan = LitGAN(cfg_gan)
 
-    for xb in dl:
-        x = xb[0]
-        y = xb[1]
-        # print(f"x: {x.shape}")
-        # print(f"y: {y.shape}")
+    # d = Discriminator(
+    #     in_channels=3,
+    #     conditional_size=10,
+    #     features=[10],
+    #     kernels=[3],
+    #     strides=[1],
+    #     paddings=[0],
+    #     norm_layers=[None],
+    #     activations=[None],
+    # )
 
-        out_g = gan.g_step(x.shape[0])
+    # for xb in dl:
+    #     x = xb[0]
+    #     y = xb[1]
+    #     # print(f"x: {x.shape}")
+    #     # print(f"y: {y.shape}")
 
-        out_d = gan.d_step(x, y)
+    #     out = d(x, y)
+    #     print(out)
+    #     # out_g = gan.g_step(x.shape[0])
 
-        print(f"g_loss: {out_g}")
-        print(f"d_loss: {out_d}")
+    #     # out_d = gan.d_step(x, y)
 
-        break
+    #     # print(f"g_loss: {out_g}")
+    #     # print(f"d_loss: {out_d}")
+
+    #     break

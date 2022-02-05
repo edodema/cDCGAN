@@ -13,13 +13,13 @@ if __name__ == "__main__":
 
     # Configuration.
     cfg_data = {
-        "name": "mnist",
+        "name": "cifar10",
         "root": ROOT / "data",
         "download": False,
         "transforms": [],
         "num_workers": 12,
-        "batch_size": 32,
-        "shuffle": False,
+        "batch_size": 64,
+        "shuffle": True,
     }
 
     cfg_d = {
@@ -84,18 +84,21 @@ if __name__ == "__main__":
         pl.seed_everything(cfg_train["random_seed"])
 
     # Instantiate.
-    wandb_logger = WandbLogger(project="CNN", tags=["try"])
+    # wandb_logger = WandbLogger(project="CNN", tags=["try"])
     datamodule = TorchDataModule(cfg_data)
-    model = LitGAN(cfg_gan)
+    # model = LitGAN(cfg_gan)
 
-    trainer = pl.Trainer(
-        deterministic=cfg_train["deterministic"],
-        gpus=cfg_train["gpus"],
-        max_epochs=cfg_train["max_epochs"],
-        logger=wandb_logger,
-        # callbacks=[checkpoint_callback],
-        # log_every_n_steps=1
-    )
+    # trainer = pl.Trainer(
+    #     deterministic=cfg_train["deterministic"],
+    #     gpus=cfg_train["gpus"],
+    #     max_epochs=cfg_train["max_epochs"],
+    #     logger=wandb_logger,
+    #     # callbacks=[checkpoint_callback],
+    #     # log_every_n_steps=1
+    # )
 
-    # Fit.
-    trainer.fit(model=model, datamodule=datamodule)
+    # # Fit.
+    # trainer.fit(model=model, datamodule=datamodule)
+    datamodule.prepare_data()
+    datamodule.setup()
+    print(datamodule.ds_train[0][0].shape)

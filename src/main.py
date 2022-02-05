@@ -1,43 +1,40 @@
-from argparse import ArgumentParser
+from src.common.opt import Options
+from src.train import main as train
+from src.common.utils import get_torch_dataset
 
+if __name__ == "__main__":
+    opt = Options().parse()
 
-def parse():
-    # Add description
-    parser = ArgumentParser(prog="SwinGAN", description="Usage.", add_help=True)
+    # image_size = 64
+    # label_dim = 2
+    # G_input_dim = 100
+    # G_output_dim = 3
+    # D_input_dim = 3
+    # D_output_dim = 1
+    # num_filters = [1024, 512, 256, 128]
 
-    parser.add_argument(
-        "--data", type=str, default="data", help="Directory in which data are stored."
-    )
+    # learning_rate = 0.0002
+    # betas = (0.5, 0.999)
+    # batch_size = 128
+    # num_epochs = 20
 
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        choices=[
-            "cifar10",
-            "cifar100",
-            "fashion-mnist",
-            "imagenet",
-            "mnist",
-            "omniglot",
-        ],
-        default=None,
-        help="Specify the name of the dataset we are working with.",
-    )
+    dataset_fn, def_transforms = get_torch_dataset(name=opt.dataset)
 
-    parser.add_argument(
-        "--no-download",
-        dest="download",
-        action="store_false",
-        help="Do not download the dataset, true by default.",
-    )
-    parser.set_defaults(download=True)
+    if opt.train:
+        train(opt)
 
-    parser.add_argument(
-        "--no-normalize",
-        dest="normalize",
-        action="store_false",
-        help="Do not normalize data by z-score, true by default.",
-    )
+    # CelebA dataset
+    # transform = transforms.Compose(
+    #     [
+    #         transforms.Scale(image_size),
+    #         transforms.ToTensor(),
+    #         transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+    #     ]
+    # )
 
-    args = parser.parse_args()
-    return args
+    # celebA_data = datasets.ImageFolder(data_dir, transform=transform)
+    # celebA_data.imgs.sort()
+
+    # data_loader = torch.utils.data.DataLoader(
+    #     dataset=celebA_data, batch_size=batch_size, shuffle=False
+    # )
