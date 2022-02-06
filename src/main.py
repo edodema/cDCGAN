@@ -1,9 +1,14 @@
 from src.common.opt import Options
 from src.train import main as train
-from src.common.utils import get_torch_dataset
+from src.common.utils import get_torch_dataset, get_stats
+
+import torch
+from torch.utils.data import DataLoader
 
 if __name__ == "__main__":
     opt = Options().parse()
+    # CIFAR10: 3,32,32
+    # MNIST: 1,28,28
 
     # image_size = 64
     # label_dim = 2
@@ -15,10 +20,16 @@ if __name__ == "__main__":
 
     # learning_rate = 0.0002
     # betas = (0.5, 0.999)
-    # batch_size = 128
+    batch_size = 128
     # num_epochs = 20
 
-    dataset_fn, def_transforms = get_torch_dataset(name=opt.dataset)
+    device = torch.device("cuda" if torch.cuda.is_available else "cpu")
+
+    dataset = get_torch_dataset(opt)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+    for x, y in dataloader:
+        break
 
     if opt.train:
         train(opt)

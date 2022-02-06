@@ -1,3 +1,4 @@
+from ast import Raise
 import numpy as np
 import torch
 import torch.nn as nn
@@ -17,7 +18,7 @@ def get_stats(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     return np.mean(data), np.std(data)
 
 
-def get_torch_dataset(opt) -> torchvision.datasets:
+def get_torch_dataset(opt, transform=[]) -> torchvision.datasets:
     """Wrapper that for a dataset's name return the correspind torchvision loader.
 
     Args:
@@ -30,31 +31,82 @@ def get_torch_dataset(opt) -> torchvision.datasets:
     mean = [0]
     std = [1]
 
+    # ! There is an issue for which it cannot be downloaded but should be fixed in the next PyTorch stable release.
+    if opt.dataset == "celeb_a":
+        dataset = torchvision.datasets.CelebA(
+            root=opt.data_dir,
+            split="train",
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)]
+                + transform
+            ),
+            download=opt.download,
+        )
     if opt.dataset == "cifar10":
-        mean = [0.49139968, 0.48215827, 0.44653124]
-        std = [0.24703233, 0.24348505, 0.26158768]
-        dataset_fn = datasets.CIFAR10(
+        if opt.normalization:
+            mean = [0.49139968, 0.48215827, 0.44653124]
+            std = [0.24703233, 0.24348505, 0.26158768]
+        dataset = datasets.CIFAR10(
             root=opt.data_dir,
             train=True,
             transform=transforms.Compose(
                 [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)]
+                + transform
             ),
+            download=opt.download,
         )
-    elif name == "cifar100":
-        dataset_fn = torchvision.datasets.CIFAR100
-    elif name == "fashion-mnist":
-        dataset_fn = torchvision.datasets.FashionMNIST
-    elif name == "imagenet":
-        dataset_fn = torchvision.datasets.ImageNet
-    elif name == "mnist":
-        mean = [0.1307]
-        std = [0.3081]
-        dataset_fn = torchvision.datasets.MNIST
-    elif name == "omniglot":
-        dataset_fn = torchvision.datasets.Omniglot
+    elif opt.dataset == "cifar100":
+        dataset = torchvision.datasets.CIFAR100(
+            root=opt.data_dir,
+            train=True,
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)]
+                + transform
+            ),
+            download=opt.download,
+        )
+    elif opt.dataset == "fashion-mnist":
+        if opt.normalization:
+            mean = [0.2860402]
+            std = [0.3530239]
+        dataset = torchvision.datasets.FashionMNIST(
+            root=opt.data_dir,
+            train=True,
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)]
+                + transform
+            ),
+            download=opt.download,
+        )
+    elif opt.dataset == "imagenet":
+        dataset = torchvision.datasets.ImageNet(
+            root=opt.data_dir, split="train", download=opt.download
+        )
+    elif opt.dataset == "mnist":
+        if opt.normalization:
+            mean = [0.1307]
+            std = [0.3081]
+        dataset = torchvision.datasets.MNIST(
+            root=opt.data_dir,
+            train=True,
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)]
+                + transform
+            ),
+            download=opt.download,
+        )
+    elif opt.dataset == "omniglot":
+        dataset = torchvision.datasets.Omniglot(
+            root=opt.data_dir,
+            background=True,
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)]
+                + transform
+            ),
+            download=opt.download,
+        )
+    else:
+        raise Exception("Non valid dataset.")
 
     # We always convert to tensor and normalize.
-    return dataset_fn, [
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize(mean=mean, std=std),
-    ]
+    return dataset

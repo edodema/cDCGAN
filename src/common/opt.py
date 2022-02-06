@@ -32,7 +32,7 @@ class Options:
             "--dataset",
             type=str,
             choices=[
-                "celeba",
+                "celeb_a",
                 "cifar10",
                 "cifar100",
                 "fashion-mnist",
@@ -55,11 +55,11 @@ class Options:
 
         self.parser.add_argument(
             "--no-normalize",
-            dest="normalize",
+            dest="normalization",
             action="store_false",
             help="Do not normalize data by z-score, true by default.",
         )
-        self.parser.set_defaults(normalize=True)
+        self.parser.set_defaults(normalization=True)
 
         # * Training.
         self.parser.add_argument(
