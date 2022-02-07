@@ -67,6 +67,18 @@ class Options:
         )
         self.parser.set_defaults(train=False)
 
+        self.parser.add_argument(
+            "--batch_size", type=int, default=128, help="Training batch size."
+        )
+
+        self.parser.add_argument(
+            "--epochs", type=int, default=20, help="Number of training epochs."
+        )
+
+        self.parser.add_argument(
+            "--lr", type=float, default=0.0002, help="Learning rate."
+        )
+
     def _print(self):
         pprint(vars(self.opt), indent=4)
 
