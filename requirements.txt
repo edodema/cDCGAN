@@ -5,3 +5,4 @@ torchvision
 dvc[gdrive]
 timm
 matplotlib
+tqdm

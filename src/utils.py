@@ -1,19 +1,20 @@
-from ast import Raise
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torchvision
 from torchvision import datasets, transforms
-from typing import Union, Tuple
-from pathlib import Path
+from typing import *
+import matplotlib as plt
 
 
 def get_stats(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Get mean and standard deviation from a numpy dataset.
-    :param data: Input data.
-    :return: Mean and std.
+    """Get mean and standard deviation from a numpy dataset.
+
+    Args:
+        data (np.ndarray): Input data.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Mean and standard deviation.
     """
     return np.mean(data), np.std(data)
 
@@ -110,3 +111,23 @@ def get_torch_dataset(opt, transform=[]) -> torchvision.datasets:
 
     # We always convert to tensor and normalize.
     return dataset
+
+
+def display(images: torch.Tensor, ncol: int = 8):
+    """Display a sequence of images.
+
+    Args:
+        images (torch.Tensor): Input images.
+        ncol (int, optional): Number of columns in the image grid. Defaults to 8.
+    """
+    image_grid = torchvision.utils.make_grid(images, nrow=ncol)
+    imgs = image_grid.permute(1, 2, 0).cpu().detach().numpy()
+
+    # Normalize image between 0 and 1.
+    min_val = np.min(imgs)
+    max_val = np.max(imgs)
+    imgs = (imgs - min_val) / (max_val - min_val)
+
+    plt.figure(figsize=(16, 16))
+    plt.imshow(imgs)
+    plt.show()
