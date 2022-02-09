@@ -4,7 +4,7 @@ import torch.nn as nn
 import torchvision
 from torchvision import datasets, transforms
 from typing import *
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 
 def get_stats(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

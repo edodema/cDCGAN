@@ -2,7 +2,9 @@ import argparse
 import torch
 
 parser = argparse.ArgumentParser(
-    prog="cDGAN", description="Command line arguments.", add_help=True
+    prog="cDGAN",
+    description="A simple conditional deep convolutiona generative adversarial network playground. Make consistent choices, remember that CIFAR10 has 3 channels and MNIST only one.",
+    add_help=True,
 )
 
 # * Directories.
@@ -14,7 +16,14 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--save_dir",
+    "--checkpoint_dir",
+    type=str,
+    default="./checkpoints",
+    help="Directory in which checkpoints are stored.",
+)
+
+parser.add_argument(
+    "--output_dir",
     type=str,
     default="./outputs",
     help="Directory in which outputs are saved.",
@@ -71,6 +80,13 @@ parser.add_argument(
 
 parser.add_argument(
     "--ncol", type=int, default=8, help="Number of columns in validation's image grid."
+)
+
+parser.add_argument(
+    "--label",
+    type=int,
+    default=-1,
+    help="Label class of the image we want to generate. By default we generate all of them.",
 )
 
 # * Training.
