@@ -113,12 +113,13 @@ def get_torch_dataset(opt, transform=[]) -> torchvision.datasets:
     return dataset
 
 
-def display(images: torch.Tensor, ncol: int = 8):
+def display(images: torch.Tensor, ncol: int, figsize: int):
     """Display a sequence of images.
 
     Args:
         images (torch.Tensor): Input images.
-        ncol (int, optional): Number of columns in the image grid. Defaults to 8.
+        ncol (int): Number of columns in the image grid.
+        figzise (int): Size of the shown image.
     """
     image_grid = torchvision.utils.make_grid(images, nrow=ncol)
     imgs = image_grid.permute(1, 2, 0).cpu().detach().numpy()
@@ -128,6 +129,6 @@ def display(images: torch.Tensor, ncol: int = 8):
     max_val = np.max(imgs)
     imgs = (imgs - min_val) / (max_val - min_val)
 
-    plt.figure(figsize=(16, 16))
+    plt.figure(figsize=(figsize, figsize))
     plt.imshow(imgs)
     plt.show()

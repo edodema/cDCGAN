@@ -190,7 +190,7 @@ def train(device: torch.device):
                     print(
                         f"Epoch: {epoch+1}, Step: {step + 1}, Discriminator loss: {mean_d_loss:.4f}, Generator loss: {mean_g_loss:.4f}"
                     )
-                    display(images=out, ncol=args.ncol)
+                    display(images=out, ncol=args.ncol, figsize=args.figsize)
 
                 mean_d_loss = 0
                 mean_g_loss = 0
@@ -241,7 +241,7 @@ def create(device: torch.device):
 
     # Display.
     imgs = g(z=z, c=c)
-    display(images=imgs, ncol=args.ncol)
+    display(images=imgs, ncol=args.ncol, figsize=args.figsize)
 
 
 if __name__ == "__main__":

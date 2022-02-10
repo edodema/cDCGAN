@@ -129,5 +129,8 @@ parser.add_argument(
     help="Logging using Weights&Biases, the input should be of the form `entity`/`project`",
 )
 
+# * Image creation.
+parser.add_argument("--figsize", type=int, default=4, help="Size of the shown image.")
+
 # Arguments.
 args = parser.parse_args()
