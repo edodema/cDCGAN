@@ -76,7 +76,7 @@ def train(device: torch.device):
             log_graph=(True),
         )
     step = 0
-    for epoch in range(args.epochs):
+    for i, epoch in enumerate(range(args.epochs)):
         # Minibatch training.
         for images, labels in tqdm(dataloader, leave=False):
             images = images.to(device)
@@ -134,6 +134,28 @@ def train(device: torch.device):
             g_loss.backward()
             g_opt.step()
 
+            # Early stopping.
+            if args.monitor:
+                if i == 0:
+                    best_d_loss = d_loss
+                    best_g_loss = g_loss
+                else:
+                    if d_loss < best_d_loss:
+                        best_d_loss = d_loss
+                        print(f"Found better discriminator: {best_d_loss}")
+                    if g_loss < best_g_loss:
+                        best_g_loss = g_loss
+                        # Save model.
+                        save_path = f"{args.checkpoint_dir}/{args.dataset}.pth"
+                        torch.save(g.state_dict(), save_path)
+                        print(f"Found better generator: {best_g_loss}")
+                        print(f"Saved model to {save_path}")
+
+            # Logging.
+            if args.wandb:
+                wandb.log({"d_loss": d_loss})
+                wandb.log({"best_d_loss": best_d_loss})
+
             # For displaying loss after 'd_s' steps
             mean_d_loss += d_loss.item() / delta_step
             mean_g_loss += g_loss.item() / delta_step
@@ -142,7 +164,20 @@ def train(device: torch.device):
                 z = torch.randn(
                     (args.num_classes * args.ncol, args.noise_dim, 1, 1), device=device
                 )
-                out = g(
+
+                if args.monitor:
+                    g_ = Generator(
+                        noise_dim=args.noise_dim,
+                        conditional_dim=args.conditional_size,
+                        channels=args.channels,
+                        img_size=args.img_size,
+                    ).to(device)
+                    load_path = f"{args.checkpoint_dir}/{args.dataset}.pth"
+                    g_.load_state_dict(torch.load(load_path, map_location=device))
+                else:
+                    g_ = g
+
+                out = g_(
                     z=z,
                     c=val_oh,
                 )
@@ -162,10 +197,11 @@ def train(device: torch.device):
 
             step += 1
 
-    # Save model.
-    save_path = f"{args.checkpoint_dir}/{args.dataset}.pth"
-    torch.save(g.state_dict(), save_path)
-    print(f"Saved model to {save_path}")
+    if not args.monitor:
+        # Save model.
+        save_path = f"{args.checkpoint_dir}/{args.dataset}.pth"
+        torch.save(g.state_dict(), save_path)
+        print(f"Saved model to {save_path}")
 
 
 def create(device: torch.device):

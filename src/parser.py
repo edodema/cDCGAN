@@ -113,6 +113,14 @@ parser.add_argument(
     "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
 )
 
+parser.add_argument(
+    "--early-stopping",
+    dest="monitor",
+    action="store_true",
+    help="Enable early stopping by picking best model only.",
+)
+parser.set_defaults(monitor=False)
+
 # * Logging support. I use WandB since it allows to log images,
 parser.add_argument(
     "--wandb",
