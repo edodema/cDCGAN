@@ -1,3 +1,5 @@
+from ast import arg
+from distutils.command.config import config
 from typing import *
 import torch
 from torch import nn
@@ -8,6 +10,7 @@ from src.parser import args
 from src.utils import get_torch_dataset, display
 from src.model import Discriminator, Generator
 from tqdm.auto import tqdm
+import wandb
 
 
 def train(device: torch.device):
@@ -94,11 +97,15 @@ def train(device: torch.device):
 
             # Probabilities assigned to real images, we do not need to detach since we minimize on real images.
             preds_real = d(x=images, c=oh_d)
-            # # The target is the truth values for real images i.e. 1.
+            # The target is the truth values for real images i.e. 1.
             d_loss += loss_fn(input=preds_real, target=torch.ones_like(preds_real))
 
-            # # Average them.
+            # Average them.
             d_loss /= 2
+
+            if args.wandb:
+                wandb.log({"d_loss": d_loss})
+
             d_loss.backward()
             d_opt.step()
 
@@ -111,6 +118,10 @@ def train(device: torch.device):
             preds = d(x=imgs_new, c=oh_d)
 
             g_loss = loss_fn(input=preds, target=torch.ones_like(preds))
+
+            if args.wandb:
+                wandb.log({"g_loss": g_loss})
+
             g_loss.backward()
             g_opt.step()
 
@@ -118,10 +129,6 @@ def train(device: torch.device):
             mean_d_loss += d_loss.item() / delta_step
             mean_g_loss += g_loss.item() / delta_step
             if step % delta_step == 0:
-                print(
-                    f"Epoch: {epoch+1}, Step: {step + 1}, Discriminator loss: {mean_d_loss:.4f}, Generator loss: {mean_g_loss:.4f}"
-                )
-
                 # Validation.
                 z = torch.randn(
                     (args.num_classes * args.ncol, args.noise_dim, 1, 1), device=device
@@ -131,7 +138,25 @@ def train(device: torch.device):
                     c=val_oh,
                 )
 
-                display(images=out, ncol=args.ncol)
+                if args.wandb:
+                    image_grid = torchvision.utils.make_grid(
+                        images, nrow=args.num_classes
+                    )
+                    wandb.log({"examples": wandb.Image(image_grid)})
+
+                    wandb.watch(
+                        models=(d, g),
+                        criterion=loss_fn,
+                        log="all",
+                        log_freq=1,
+                        idx=None,
+                        log_graph=(True),
+                    )
+                else:
+                    print(
+                        f"Epoch: {epoch+1}, Step: {step + 1}, Discriminator loss: {mean_d_loss:.4f}, Generator loss: {mean_g_loss:.4f}"
+                    )
+                    display(images=out, ncol=args.ncol)
 
                 mean_d_loss = 0
                 mean_g_loss = 0
@@ -185,9 +210,16 @@ def create(device: torch.device):
 
 
 if __name__ == "__main__":
+    # Logging.
+    if args.wandb:
+        entity, project = args.wandb.split("/", maxsplit=1)
+        wandb.init(entity=entity, project=project, config=vars(args))
+
     device = torch.device(args.device)
 
     if args.train:
         train(device)
     else:
         create(device)
+
+    wandb.finish()

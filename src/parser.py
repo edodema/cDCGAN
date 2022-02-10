@@ -113,5 +113,13 @@ parser.add_argument(
     "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
 )
 
+# * Logging support. I use WandB since it allows to log images,
+parser.add_argument(
+    "--wandb",
+    type=str,
+    default=None,
+    help="Logging using Weights&Biases, the input should be of the form `entity`/`project`",
+)
+
 # Arguments.
 args = parser.parse_args()
