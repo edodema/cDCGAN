@@ -66,6 +66,15 @@ def train(device: torch.device):
     mean_d_loss = 0.0
     delta_step = len(dataloader)
 
+    if args.wandb:
+        wandb.watch(
+            models=(d, g),
+            criterion=loss_fn,
+            log="all",
+            log_freq=1,
+            idx=None,
+            log_graph=(True),
+        )
     step = 0
     for epoch in range(args.epochs):
         # Minibatch training.
@@ -142,14 +151,6 @@ def train(device: torch.device):
                     image_grid = torchvision.utils.make_grid(out, nrow=args.num_classes)
                     wandb.log({"examples": wandb.Image(image_grid)})
 
-                    wandb.watch(
-                        models=(d, g),
-                        criterion=loss_fn,
-                        log="all",
-                        log_freq=1,
-                        idx=None,
-                        log_graph=(True),
-                    )
                 else:
                     print(
                         f"Epoch: {epoch+1}, Step: {step + 1}, Discriminator loss: {mean_d_loss:.4f}, Generator loss: {mean_g_loss:.4f}"
