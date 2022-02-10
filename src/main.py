@@ -139,9 +139,7 @@ def train(device: torch.device):
                 )
 
                 if args.wandb:
-                    image_grid = torchvision.utils.make_grid(
-                        images, nrow=args.num_classes
-                    )
+                    image_grid = torchvision.utils.make_grid(out, nrow=args.num_classes)
                     wandb.log({"examples": wandb.Image(image_grid)})
 
                     wandb.watch(

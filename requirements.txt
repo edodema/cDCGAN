@@ -6,3 +6,4 @@ dvc[gdrive]
 timm
 matplotlib
 tqdm
+wandb
