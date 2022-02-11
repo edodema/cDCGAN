@@ -110,6 +110,92 @@
     Random samples have dimension 64 and conditioning is directly concatenated as a channel to input vectors.
 \end{frame}
 
+\begin{frame}{Discriminator}
+    \centering
+    \includegraphics[scale=0.35]{images/discr.png}
+\end{frame}
+
+\begin{frame}{Generator}
+    \centering
+    \includegraphics[scale=0.35]{images/gen.png}
+\end{frame}
+
+\begin{frame}{Loss}
+    \begin{equation}
+        \mathcal{L}_{GAN} = \min_\gamma \max_\delta \mathbb{E}_{x \sim p_d} \log D(x) + \mathbb{E}_{z \sim \mathcal{N}} \log (1-D(G(z)))
+    \end{equation}
+    \begin{equation}
+        BCE = -\frac{1}{N} \sum_{i=1}^N y_i \log (f(x_i)) + (1-y_i) \log (1-f(x_i))
+    \end{equation}
+
+    We define the ground truth on real and fake data as a vector of ones and zeros respectively.
+\end{frame}
+
+\begin{frame}{MNIST}
+    \centering
+    \includegraphics[scale=0.2]{images/mnist.png}
+\end{frame}
+
+\begin{frame}{Weighting conditioning}
+    \centering
+    \includegraphics[scale=0.2]{images/mnist-weighted.png}
+\end{frame}
+
+\begin{frame}{FashionMNIST}
+    \centering
+    \includegraphics[scale=0.2]{images/fashion.png}
+\end{frame}
+
+\begin{frame}{Doing the same\dots}
+    \centering
+    \includegraphics[scale=0.2]{images/fashion-weighted.png}
+\end{frame}
+
+\begin{frame}{Multiclass conditioning}
+    \centering
+    \includegraphics[scale=0.2]{images/gen3.png}
+\end{frame}
+
+\begin{frame}
+    \centering
+    \includegraphics[scale=0.2]{images/gen5.png}
+\end{frame}
+
+\begin{frame}{With different weights}
+    \centering
+    \includegraphics[scale=0.2]{images/gen35.png}
+\end{frame}
+
+\begin{frame}
+    \centering
+    \includegraphics[scale=0.2]{images/gen35with3weighted.png}
+\end{frame}
+
+\begin{frame}
+    \centering
+    \includegraphics[scale=0.2]{images/gen35with5weighted.png}
+\end{frame}
+
+\begin{frame}{The same on FashionMNIST}
+    \centering
+    \includegraphics[scale=0.2]{images/shirt.png}
+\end{frame}
+
+\begin{frame}
+    \centering
+    \includegraphics[scale=0.2]{images/pants.png}
+\end{frame}
+
+\begin{frame}
+    \centering
+    \includegraphics[scale=0.2]{images/shirtpants-weighted.png}
+\end{frame}
+
+\begin{frame}
+    \centering
+    \huge{\textit{Thank you}}
+\end{frame}
+
 
 % * References.
 \begin{frame}{References}
