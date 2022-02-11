@@ -2,8 +2,6 @@ black
 numpy
 torch
 torchvision
-dvc[gdrive]
-timm
 matplotlib
 tqdm
 wandb
