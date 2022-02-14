@@ -10,10 +10,6 @@ A simple playground for *conditional Deep Convolutional Generative Adversarial N
 │   ├── cifar-10-batches-py
 │   └── MNIST
 ├── docs
-│   ├── report
-│   │   └── images
-│   └── slides
-│       └── images
 ├── notebooks
 ├── outputs
 │   ├── cifar10
@@ -21,7 +17,6 @@ A simple playground for *conditional Deep Convolutional Generative Adversarial N
 │   └── mnist
 ├── scripts
 └── src
-
 ```
 
 ## Usage
