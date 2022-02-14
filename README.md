@@ -3,6 +3,25 @@ A simple playground for *conditional Deep Convolutional Generative Adversarial N
 
 ## Repo structure
 ```
+.
+├── checkpoints
+├── data
+│   ├── cifar-100-python
+│   ├── cifar-10-batches-py
+│   └── MNIST
+├── docs
+│   ├── report
+│   │   └── images
+│   └── slides
+│       └── images
+├── notebooks
+├── outputs
+│   ├── cifar10
+│   ├── fashion_mnist
+│   └── mnist
+├── scripts
+└── src
+
 ```
 
 ## Usage
