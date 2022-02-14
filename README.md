@@ -11,10 +11,6 @@ A simple playground for *conditional Deep Convolutional Generative Adversarial N
 │   └── MNIST
 ├── docs
 ├── notebooks
-├── outputs
-│   ├── cifar10
-│   ├── fashion_mnist
-│   └── mnist
 ├── scripts
 └── src
 ```
